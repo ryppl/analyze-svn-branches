@@ -23,7 +23,7 @@ class SVN_To_DB:
         def __init__(self):
                 pass
  
-def main(pool, cmd, config_fname, repos_dir, cmd_args):
+def main(cmd, config_fname, repos_dir, cmd_args, pool=None):
         if cmd == 'commit':
                 Debug = True
                 records = []
@@ -159,7 +159,7 @@ if __name__ == '__main__':
         except KeyError:
                 print "parameter wrong ~ ~", cmd
  
-        svn.core.run_app(main, cmd, config_fname, repos_dir,sys.argv[3:3+expected_args])
+        main(cmd, config_fname, repos_dir,sys.argv[3:3+expected_args])
         """
         What is this command doing ? => argv[3:3+expected_args]
         if user input command : python Mdx_SVN_fun.py commit C:/SVN_TEST/SVN_TEST 3
