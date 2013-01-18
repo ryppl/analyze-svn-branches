@@ -1,0 +1,3 @@
+[submodule "svndumpparse"]
+	path = svndumpparse
+	url = git://github.com/ryppl/svndumpparse
