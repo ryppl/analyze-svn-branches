@@ -25,8 +25,22 @@ import sys
 import svn.fs, svn.delta, svn.repos, svn.core
 # Available change actions
 from svn.repos import CHANGE_ACTION_MODIFY,CHANGE_ACTION_ADD,CHANGE_ACTION_DELETE,CHANGE_ACTION_REPLACE
-from svn.core import svn_node_dir, svn_node_file
-import ChangeCollector
+from svn.core import svn_node_dir, svn_node_file, svn_node_none, svn_node_unknown
+import analyzer
+
+repr_map = { 
+    'item_kind' : { 
+        svn_node_dir:'directory', 
+        svn_node_file:'file', 
+        svn_node_none:'None', 
+        svn_node_unknown:'UNKNOWN' 
+        },
+    'action' : { 
+        CHANGE_ACTION_MODIFY:'modify',
+        CHANGE_ACTION_ADD:'add',
+        CHANGE_ACTION_DELETE:'delete',
+        CHANGE_ACTION_REPLACE:'replace' 
+        }}
 
 class Repository(object):
     def __init__(self, path):
@@ -46,7 +60,7 @@ class Revision(object):
 
 def get_changeset(repo, revnum):
     root = svn.fs.revision_root(repo.fs, revnum)
-    collector = ChangeCollector.ChangeCollector(repo.fs, root)
+    collector = analyzer.ChangeCollector(repo.fs, root)
     editor, baton = svn.delta.make_editor(collector)
     svn.repos.replay(root, editor, baton)
     return collector.get_changes().items()
@@ -60,7 +74,7 @@ def log(*args, **kw):
 
 class ChangeCollector(object):
     def __init__(self, repo, root = ''):
-        self.collector = ChangeCollector.ChangeCollector(repo.fs, root)
+        self.collector = analyzer.ChangeCollector(repo.fs, root)
         self.editor_ptr, self.e_baton = svn.delta.make_editor(self.collector)
 
 funky_move_revs = range(38327, 38330)
@@ -79,7 +93,10 @@ def run():
         for p, data in changes:
             import pprint
             pprint.pprint((
-                    p, dict(((s,getattr(data,s)) for s in data.__slots__))
+                    p, 
+                    dict(((s,
+                           repr_map.get(s,{}).get(getattr(data,s), getattr(data,s))
+                           ) for s in data.__slots__))
                     ))
 
 def path_lcd(paths):
