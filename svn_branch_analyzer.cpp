@@ -51,6 +51,7 @@ void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
     {
         this->node_is_dir = (std::strcmp(kind_txt, "dir") == 0);
     }
+    dump_headers(pool, headers, "    ");    
 }
     
 // set a named property of the current revision to value. 
