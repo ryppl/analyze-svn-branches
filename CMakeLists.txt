@@ -2,10 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 add_subdirectory(svndumpparse)
 
+find_package(Boost  REQUIRED)
+
 include_directories(
   ${CMAKE_CURRENT_LIST_DIR} 
   ${SUBVERSION_INCLUDE_DIRS}
   ${APR_INCLUDE_DIRS} 
+  ${Boost_INCLUDE_DIRS}
   svndumpparse
   )
 

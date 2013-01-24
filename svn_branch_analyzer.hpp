@@ -4,6 +4,8 @@
 #ifndef SVN_BRANCH_ANALYZER_DWA201319_HPP
 # define SVN_BRANCH_ANALYZER_DWA201319_HPP
 # include "svn_dump_parser.hpp"
+# include <set>
+# include <string>
 
 namespace ryppl {
 
@@ -13,7 +15,7 @@ namespace ryppl {
 struct svn_branch_analyzer : svn_dump_parser
 {
     svn_branch_analyzer(apr_pool_t* pool)
-        : svn_dump_parser(pool), rev_num(-1UL) {}
+        : svn_dump_parser(pool), rev_num(-1) {}
 
  private: // virtual function implementations
 
@@ -66,7 +68,11 @@ struct svn_branch_analyzer : svn_dump_parser
     
  private: // data members
     // Revision number
-    unsigned long rev_num;
+    long rev_num;
+    bool node_is_dir;
+    
+    // A set of all source directory paths that are used for a copy (or move)
+    std::set<std::string> src_dirs;
 };
 
 }

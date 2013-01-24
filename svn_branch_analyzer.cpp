@@ -3,11 +3,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #include "svn_branch_analyzer.hpp"
 
-#include <iostream>
 #include <string>
 #include <svn_string.h>
 #include <svn_delta.h>
 #include <apr_hash.h>
+#include <boost/lexical_cast.hpp>
+#include <cstring>
 
 namespace ryppl {
 
@@ -26,9 +27,13 @@ static void dump_headers(apr_pool_t* pool, apr_hash_t* headers, char const* pref
 // The parser has discovered a new revision record
 void svn_branch_analyzer::begin_revision(apr_hash_t *headers, apr_pool_t *pool)
 {
-    ++rev_num;
-    std::cout << "{ revision: " << rev_num << std::endl;
-    dump_headers(pool, headers, "  ");
+    if (char const* rev_text = (char const*)
+        apr_hash_get(headers, "Revision-number", APR_HASH_KEY_STRING))
+    {
+        this->rev_num = boost::lexical_cast<long>(rev_text);
+    }
+    std::cout << "{ revision: " << this->rev_num << std::endl;
+    dump_headers(pool, headers, "  ");    
 }
 
 // The parser has discovered a new uuid record
@@ -41,8 +46,11 @@ void svn_branch_analyzer::uuid_record(const char *uuid, apr_pool_t *pool)
 // revision represented by revision_baton.
 void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 {
-    std::cout << "  { node " << std::endl;
-    dump_headers(pool, headers, "    ");
+    if (char const* kind_txt = (char const*)
+        apr_hash_get(headers, "Node-kind", APR_HASH_KEY_STRING))
+    {
+        this->node_is_dir = (std::strcmp(kind_txt, "dir") == 0);
+    }
 }
     
 // set a named property of the current revision to value. 
