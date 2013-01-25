@@ -6,6 +6,7 @@
 # include "svn_dump_parser.hpp"
 # include <set>
 # include <string>
+#include <boost/filesystem/path.hpp>
 
 namespace ryppl {
 
@@ -15,7 +16,7 @@ namespace ryppl {
 struct svn_branch_analyzer : svn_dump_parser
 {
     svn_branch_analyzer(apr_pool_t* pool)
-        : svn_dump_parser(pool), rev_num(-1) {}
+        : svn_dump_parser(pool), rev_num(-1), found_path(false) {}
 
  private: // virtual function implementations
 
@@ -70,6 +71,8 @@ struct svn_branch_analyzer : svn_dump_parser
     // Revision number
     long rev_num;
     bool node_is_dir;
+    bool found_path;
+    boost::filesystem::path path_gcd;
     
     // A set of all source directory paths that are used for a copy (or move)
     std::set<std::string> src_dirs;

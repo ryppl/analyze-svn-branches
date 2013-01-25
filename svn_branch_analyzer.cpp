@@ -8,6 +8,7 @@
 #include <svn_delta.h>
 #include <apr_hash.h>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstring>
 
 namespace ryppl {
@@ -33,7 +34,10 @@ void svn_branch_analyzer::begin_revision(apr_hash_t *headers, apr_pool_t *pool)
         this->rev_num = boost::lexical_cast<long>(rev_text);
     }
     std::cout << "{ revision: " << this->rev_num << std::endl;
-    dump_headers(pool, headers, "  ");    
+    dump_headers(pool, headers, "  ");
+
+    // Remember that we haven't seen any paths in this revision
+    this->found_path = false;
 }
 
 // The parser has discovered a new uuid record
@@ -46,10 +50,50 @@ void svn_branch_analyzer::uuid_record(const char *uuid, apr_pool_t *pool)
 // revision represented by revision_baton.
 void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 {
+    using boost::filesystem::path;
+
+    std::cout << "  {" << std::endl;
+
     if (char const* kind_txt = (char const*)
         apr_hash_get(headers, "Node-kind", APR_HASH_KEY_STRING))
     {
         this->node_is_dir = (std::strcmp(kind_txt, "dir") == 0);
+    }
+    if (char const* path_txt = (char const*)
+        apr_hash_get(headers, "Node-path", APR_HASH_KEY_STRING))
+    {
+        // Update our notion of the "path GCD;" the directory that
+        // subsumes all changes in this node
+        if (!this->found_path)
+        {
+            this->found_path = true;
+            this->path_gcd.assign(path_txt, path_txt + std::strlen(path_txt));
+            if (!this->node_is_dir)
+                this->path_gcd.remove_filename();
+        }
+        else
+        {
+            path p(path_txt);
+            if (!this->node_is_dir)
+                p.remove_filename();
+            
+            std::size_t dp = std::distance(p.begin(), p.end());
+            
+            for (std::size_t dg = std::distance(this->path_gcd.begin(), this->path_gcd.end());
+                 dg > dp; --dg)
+            {
+               this->path_gcd.remove_filename();
+            }
+            
+            for (std::size_t nextra = std::distance(
+                     std::mismatch(this->path_gcd.begin(), this->path_gcd.end(), p.begin()).first,
+                     this->path_gcd.end());
+                 nextra > 0;
+                 --nextra)
+            {
+                this->path_gcd.remove_filename();
+            }
+        }
     }
     dump_headers(pool, headers, "    ");    
 }
@@ -127,6 +171,13 @@ void svn_branch_analyzer::end_node()
 // The parser has reached the end of the current revision
 void svn_branch_analyzer::end_revision()
 {
+    if (this->found_path)
+    {
+        std::cout << "  ***path GCD = "
+                  << this->path_gcd
+                  << " ***" << std::endl;
+    }
+    
     std::cout << "}" << std::endl;
 }
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 add_subdirectory(svndumpparse)
 
-find_package(Boost  REQUIRED)
+find_package(Boost COMPONENTS filesystem system REQUIRED)
 
 include_directories(
   ${CMAKE_CURRENT_LIST_DIR} 
@@ -22,6 +22,8 @@ add_executable(analyze-svn-branches
 
 target_link_libraries(analyze-svn-branches
   svndumpparse
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
   ${SUBVERSION_LIBRARIES} ${APR_LIBRARY}
 )
 
