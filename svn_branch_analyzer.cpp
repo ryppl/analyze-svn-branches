@@ -13,6 +13,26 @@
 
 namespace ryppl {
 
+struct dummy_log
+{
+    template <class T>
+    dummy_log& operator<<(T const&)
+    {
+        return *this;
+    }
+    
+    dummy_log& operator<<(std::ostream&(*f)(std::ostream&))
+    {
+        return *this;
+    }
+};
+
+#if 0
+std::ostream& info_log = std::cout;
+#else
+dummy_log info_log;
+#endif
+
 static void dump_headers(apr_pool_t* pool, apr_hash_t* headers, char const* prefix)
 {
     for (apr_hash_index_t* i = apr_hash_first(pool, headers); i; i = apr_hash_next(i))
@@ -21,7 +41,7 @@ static void dump_headers(apr_pool_t* pool, apr_hash_t* headers, char const* pref
         char const* val;
         apr_hash_this(i, (const void**)&key, NULL, (void**)&val);
         
-        std::cout << prefix << "( " << key << ": " << val << ")" << std::endl;
+        info_log << prefix << "( " << key << ": " << val << ")" << std::endl;
     }
 }
 
@@ -33,17 +53,18 @@ void svn_branch_analyzer::begin_revision(apr_hash_t *headers, apr_pool_t *pool)
     {
         this->rev_num = boost::lexical_cast<long>(rev_text);
     }
-    std::cout << "{ revision: " << this->rev_num << std::endl;
+    info_log << "{ revision: " << this->rev_num << std::endl;
     dump_headers(pool, headers, "  ");
 
     // Remember that we haven't seen any paths in this revision
     this->found_path = false;
 }
 
+
 // The parser has discovered a new uuid record
 void svn_branch_analyzer::uuid_record(const char *uuid, apr_pool_t *pool)
 {
-    std::cout << "UUID " << uuid << std::endl;
+    info_log << "UUID " << uuid << std::endl;
 }
 
 // The parser has discovered a new node record within the current
@@ -52,7 +73,7 @@ void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 {
     using boost::filesystem::path;
 
-    std::cout << "  {" << std::endl;
+    info_log << "  {" << std::endl;
 
     if (char const* kind_txt = (char const*)
         apr_hash_get(headers, "Node-kind", APR_HASH_KEY_STRING))
@@ -101,7 +122,7 @@ void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 // set a named property of the current revision to value. 
 void svn_branch_analyzer::set_revision_property(const char *name, const svn_string_t *value)
 {
-    std::cout << "  [ set-revision-property "
+    info_log << "  [ set-revision-property "
               << name << "=" << std::string(value->data, value->data + value->len)
               << " ]" << std::endl;
 }
@@ -109,7 +130,7 @@ void svn_branch_analyzer::set_revision_property(const char *name, const svn_stri
 // set a named property of the current node to value. 
 void svn_branch_analyzer::set_node_property(const char *name, const svn_string_t *value)
 {
-    std::cout << "    [ set-node-property "
+    info_log << "    [ set-node-property "
               << name << "=" << std::string(value->data, value->data + value->len)
               << " ]" << std::endl;
 }
@@ -117,7 +138,7 @@ void svn_branch_analyzer::set_node_property(const char *name, const svn_string_t
 // delete a named property of the current node
 void svn_branch_analyzer::delete_node_property(const char *name)
 {
-    std::cout << "    [ delete-node-property "
+    info_log << "    [ delete-node-property "
               << name
               << " ]" << std::endl;
     
@@ -126,46 +147,46 @@ void svn_branch_analyzer::delete_node_property(const char *name)
 // remove all properties of the current node.
 void svn_branch_analyzer::remove_node_props()
 {
-    std::cout << "    [ delete-all-node-properties "
+    info_log << "    [ delete-all-node-properties "
               << " ]" << std::endl;
 }
     
 void svn_branch_analyzer::write_fulltext_stream(const char *data, apr_size_t *len)
 {
-    std::cout << "<fulltext: " << *len << "> ";
+    info_log << "<fulltext: " << *len << "> ";
 }
 
 void svn_branch_analyzer::close_fulltext_stream()
 {
-    std::cout << "<EOS>" << std::endl;
+    info_log << "<EOS>" << std::endl;
 }
 
 void svn_branch_analyzer::apply_textdelta(svn_txdelta_window_t *window)
 {
     if (!window)
     {
-        std::cout << "    [ textdelta (NULL) ]" << std::endl;
+        info_log << "    [ textdelta (NULL) ]" << std::endl;
     }
     else
     {
-        std::cout << "    [ textdelta " << std::endl;
+        info_log << "    [ textdelta " << std::endl;
 
-        std::cout << "        sview_offset: " << window->sview_offset
+        info_log << "        sview_offset: " << window->sview_offset
                   << " sview_len: " << window->sview_len
                   << " tview_len: " << window->tview_len
                   << std::endl;
     
-        std::cout << "      num_ops: " << window->num_ops
+        info_log << "      num_ops: " << window->num_ops
                   << " src_ops: " << window->src_ops << std::endl;
     
-        std::cout << "    ]" << std::endl;
+        info_log << "    ]" << std::endl;
     }
 }
     
 // The parser has reached the end of the current node
 void svn_branch_analyzer::end_node()
 {
-    std::cout << "  }" << std::endl;
+    info_log << "  }" << std::endl;
 }
     
 // The parser has reached the end of the current revision
@@ -178,7 +199,7 @@ void svn_branch_analyzer::end_revision()
                   << " ***" << std::endl;
     }
     
-    std::cout << "}" << std::endl;
+    info_log << "}" << std::endl;
 }
 
 }
