@@ -27,7 +27,7 @@ struct dummy_log
     }
 };
 
-#if 0
+#if 1
 std::ostream& info_log = std::cout;
 #else
 dummy_log info_log;
@@ -45,11 +45,15 @@ static void dump_headers(apr_pool_t* pool, apr_hash_t* headers, char const* pref
     }
 }
 
+char const* hdr_get(apr_hash_t* headers, char const* key)
+{
+    return (char const*)apr_hash_get(headers, key, APR_HASH_KEY_STRING);
+}
+
 // The parser has discovered a new revision record
 void svn_branch_analyzer::begin_revision(apr_hash_t *headers, apr_pool_t *pool)
 {
-    if (char const* rev_text = (char const*)
-        apr_hash_get(headers, "Revision-number", APR_HASH_KEY_STRING))
+    if (char const* rev_text = hdr_get(headers, "Revision-number"))
     {
         this->rev_num = boost::lexical_cast<long>(rev_text);
     }
@@ -59,7 +63,6 @@ void svn_branch_analyzer::begin_revision(apr_hash_t *headers, apr_pool_t *pool)
     // Remember that we haven't seen any paths in this revision
     this->found_path = false;
 }
-
 
 // The parser has discovered a new uuid record
 void svn_branch_analyzer::uuid_record(const char *uuid, apr_pool_t *pool)
@@ -75,13 +78,10 @@ void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 
     info_log << "  {" << std::endl;
 
-    if (char const* kind_txt = (char const*)
-        apr_hash_get(headers, "Node-kind", APR_HASH_KEY_STRING))
-    {
+    if (char const* kind_txt = hdr_get(headers, "Node-kind"))
         this->node_is_dir = (std::strcmp(kind_txt, "dir") == 0);
-    }
-    if (char const* path_txt = (char const*)
-        apr_hash_get(headers, "Node-path", APR_HASH_KEY_STRING))
+    
+    if (char const* path_txt = hdr_get(headers, "Node-path"))
     {
         // Update our notion of the "path GCD;" the directory that
         // subsumes all changes in this node
