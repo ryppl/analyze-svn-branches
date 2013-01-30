@@ -27,7 +27,7 @@ struct dummy_log
     }
 };
 
-#if 1
+#if 0
 std::ostream& info_log = std::cout;
 #else
 dummy_log info_log;
@@ -48,6 +48,12 @@ static void dump_headers(apr_pool_t* pool, apr_hash_t* headers, char const* pref
 char const* hdr_get(apr_hash_t* headers, char const* key)
 {
     return (char const*)apr_hash_get(headers, key, APR_HASH_KEY_STRING);
+}
+
+bool hdr_check(apr_hash_t* headers, char const* key, char const* value)
+{
+    char const* const v = hdr_get(headers, key);
+    return v && !std::strcmp(v, value);
 }
 
 // The parser has discovered a new revision record
@@ -78,11 +84,16 @@ void svn_branch_analyzer::begin_node(apr_hash_t *headers, apr_pool_t *pool)
 
     info_log << "  {" << std::endl;
 
-    if (char const* kind_txt = hdr_get(headers, "Node-kind"))
-        this->node_is_dir = (std::strcmp(kind_txt, "dir") == 0);
+    this->node_is_dir = hdr_check(headers, "Node-kind", "dir");
     
-    if (char const* path_txt = hdr_get(headers, "Node-path"))
+    if (char const* const path_txt = hdr_get(headers, "Node-path"))
     {
+        if (this->node_is_dir && hdr_check(headers, "Node-action", "add"))
+        {
+            if (char const* src = hdr_get(headers, "Node-copyfrom-path"))
+                std::cout << "cp " << src << " " << path_txt << std::endl;
+        }
+        
         // Update our notion of the "path GCD;" the directory that
         // subsumes all changes in this node
         if (!this->found_path)
@@ -194,7 +205,7 @@ void svn_branch_analyzer::end_revision()
 {
     if (this->found_path)
     {
-        std::cout << "  ***path GCD = "
+        info_log << "  ***path GCD = "
                   << this->path_gcd
                   << " ***" << std::endl;
     }
